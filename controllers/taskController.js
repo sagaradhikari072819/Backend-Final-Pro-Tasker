@@ -1,8 +1,8 @@
-const Task = require('../models/Task')
-const Project = require('../models/Project')
+const Task = require("../models/Task");
+const Project = require("../models/Project");
 
-async function getTasks(req, res){
-    try {
+async function getTasks(req, res) {
+  try {
     const userTasks = await Task.find({
       project: req.params.projectId,
       // user: req.user._id,
@@ -14,38 +14,71 @@ async function getTasks(req, res){
     res.status(500).json({ error: error.message });
   }
 }
+async function getTaskById(req, res) {
+  try {
+    const getTaskById = await Task.findById(req.params.taskId);
 
-async function updateTask(req, res){
-     try {
+    if (!getTaskById) {
+      return res.status(400).json({ message: "Invalid Task ID" });
+    }
+
+    const getProject = await Project.findById(req.params.projectId);
+    if (!getProject) {
+      return res.status(400).json({ message: "Invalid project ID" });
+    }
+
+    // check if the user field on that task matches the authenticated user’s _id.
+    if (getProject.user.toString() !== req.user._id) {
+      return res
+        .status(403)
+        .json({ message: "Not Authorize to update this task" });
+    }
+    const task = await Task.findById(req.params.taskId);
+    if (!task) {
+      return res.status(404).json({ message: "No task found with this id!" });
+    }
+    res.json(task);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+}
+
+async function updateTask(req, res) {
+  try {
     const task = await Task.findById(req.params.taskId);
 
-     if (!task) {
+    if (!task) {
       return res.status(404).json({ error: "Task not Found!" });
     }
 
     const project = await Project.findById(req.params.projectId);
 
     if (!project) {
-      return res.status(404).json({ error: "Task does not Belong to any project!" });
+      return res
+        .status(404)
+        .json({ error: "Task does not Belong to any project!" });
     }
 
     if (project.user.toString() === req.user._id) {
-      const newTask = await Task.findByIdAndUpdate(req.params.taskId, req.body, {
-        new: true,
-        runValidators: true,
-      });
+      const newTask = await Task.findByIdAndUpdate(
+        req.params.taskId,
+        req.body,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
       res.status(200).json(newTask);
-    }else{
+    } else {
       res.status(403).json({ error: "You have no access to this task" });
-
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
 
-async function deleteTask(req, res){
-    try {
+async function deleteTask(req, res) {
+  try {
     // 1. Find the task by ID
     const taskToDelet = await Task.findById(req.params.taskId);
 
@@ -53,13 +86,14 @@ async function deleteTask(req, res){
       return res.status(404).json({ error: "Task not found!" });
     }
 
-     // 2. Find the project the task belongs to
-     const project = await Project.findById(req.params.projectId);
+    // 2. Find the project the task belongs to
+    const project = await Project.findById(req.params.projectId);
 
     if (!project) {
-      return res.status(404).json({ error: "Task does not belong to any project!" });
+      return res
+        .status(404)
+        .json({ error: "Task does not belong to any project!" });
     }
-
 
     // 3. Authorization check (Does the user own the project?)
     if (req.user._id !== project.user.toString()) {
@@ -77,11 +111,11 @@ async function deleteTask(req, res){
   }
 }
 
-async function createTask(req, res){
-    try {
+async function createTask(req, res) {
+  try {
     const newTask = await Task.create({
       ...req.body,
-      project: req.params.projectId,//////////////////////////////////////////////////////////////////
+      project: req.params.projectId, //////////////////////////////////////////////////////////////////
       // user: req.user._id,
     });
 
@@ -91,4 +125,4 @@ async function createTask(req, res){
     res.status(500).json({ error: error.message });
   }
 }
-module.exports = {getTasks, updateTask, deleteTask, createTask}
+module.exports = { getTasks, updateTask, deleteTask, createTask,getTaskById };
